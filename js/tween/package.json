@@ -1,6 +1,6 @@
 {
-	"name": "tween",
-	"version":"0.1.0",
-	"description": "A high-performance tweening engine with intuitive CSS3 support for Dojo.",
-	"dojoBuild": "tween.profile.js"
+    "name": "tween",
+    "version":"0.1.0",
+    "description": "A high-performance tweening engine with intuitive CSS3 support for Dojo.",
+    "dojoBuild": "tween.profile.js"
 }

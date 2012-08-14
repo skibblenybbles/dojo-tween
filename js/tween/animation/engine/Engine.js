@@ -54,10 +54,13 @@ define(
             // internal state
             ///////////////////////////////////////////////////////////////////
             
+            // is the engine running
+            _started: false,
+            
             // the update interval (from setInterval)
             _interval: null,
             
-            // the last frame update's time in milliseconds
+            // the last update's time in milliseconds
             _lastTime: null,
             
             // the animations (DoublyLinkedList)
@@ -125,7 +128,10 @@ define(
                     }
                     
                     // make sure the engine has started
-                    this._start();
+                    if (!this._started) {
+                        
+                        this._start();
+                    }
                 }
             },
             
@@ -151,24 +157,26 @@ define(
             ///////////////////////////////////////////////////////////////////
             
             // start the animation engine
+            // should only be called if _started is false
             _start: function() {
                 
-                if (this._interval === null) {
-                    
-                    this._interval = setInterval(lang.hitch(this, this._tick), this.rate);
-                    this._lastTime = (new Date()).valueOf();
-                }
+                this._started = true;
+                this._interval = setInterval(lang.hitch(this, this._tick), this.rate);
+                this._lastTime = (new Date()).valueOf();
+                
+                console.log("starting engine");
             },
             
             // stop the animation engine
+            // should only be called if _started is true
             _stop: function() {
+                                
+                this._started = false;
+                clearInterval(this._interval);
+                this._interval = null;
+                this._lastTime = null;
                 
-                if (this._interval !== null) {
-                    
-                    clearInterval(this._interval);
-                    this._interval = null;
-                    this._lastTime = null;
-                }
+                console.log("stopping engine");
             },
             
             // tick the animation engine forward
@@ -208,7 +216,7 @@ define(
                 }
                 
                 // have all of our animations been removed?
-                if (this._animations.count() === 0) {
+                if (this._animations.count() === 0 && this._started) {
                     
                     this._stop();
                 }

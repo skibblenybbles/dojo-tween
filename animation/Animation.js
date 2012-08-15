@@ -598,7 +598,7 @@ define(
                             
                             // reduce the delay's remaining time
                             this._delayRemaining -= timeDelta;
-                        
+                            
                             // shave off the remainder of the delay from the duration
                             this._durationRemaining += this._delayRemaining;
                             
@@ -684,13 +684,17 @@ define(
                 delay = 1000.0 * (delay !== undefined ? delay : this.delay);
                 duration = 1000.0 * (duration !== undefined ? duration : this.duration);
                 
-                // "invert" the remaining values
-                this._delayRemaining =
-                    delay === 0
-                    ?
-                    0
-                    :
-                    delay * Math.min(1.0, Math.max(0.0, (1.0 - (this._delayRemaining / delay))));
+                // invert the remaining values, but only invert the delay
+                // if it has not yet been passed through
+                if (this._delayRemaining > 0) {
+                    
+                    this._delayRemaining =
+                        delay === 0
+                        ?
+                        0
+                        :
+                        delay * Math.min(1.0, Math.max(0.0, (1.0 - (this._delayRemaining / delay))));
+                }
                 
                 this._durationRemaining =
                     duration === 0

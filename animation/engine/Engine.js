@@ -9,7 +9,8 @@ define(
         
         
         ///////////////////////////////////////////////////////////////////////
-        // The Engine class, the animation engine's core.
+        // The Engine class, the core engine used by FramerateAnimation
+        // instances.
         //
         // uses window.requestAnimationFrame() to synchronize animation
         // updates to the browser's screen refresh.

@@ -10,13 +10,8 @@ define(
         
         
         ///////////////////////////////////////////////////////////////////////
-        // The Animation class, an abstraction for any kind of timed animation.
-        // 
-        // It supports basic animation configurations for delay, duration,
-        // framerate and easing, It has an API to control playing, reversing,
-        // stopping and advancing play to a specific percentage. It also
-        // supports callbacks for various play, reverse, update and stop
-        // events (see details below).
+        // The FramerateAnimation class, an abstraction for timed animations
+        // that run with a framerate.
         
         
         ///////////////////////////////////////////////////////////////////////
@@ -31,10 +26,10 @@ define(
         
         
         ///////////////////////////////////////////////////////////////////////
-        // Animation class
+        // FramerateAnimation class
         ///////////////////////////////////////////////////////////////////////
         
-        var Animation = declare(null, {
+        var FramerateAnimation = declare(null, {
             
             
             ///////////////////////////////////////////////////////////////////
@@ -809,7 +804,7 @@ define(
         
         
         // define the package structure
-        base.Animation = Animation;
-        return base.Animation;
+        base.FramerateAnimation = FramerateAnimation;
+        return base.FramerateAnimation;
     }
 );

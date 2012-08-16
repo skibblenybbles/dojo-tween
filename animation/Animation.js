@@ -322,6 +322,11 @@ define(
                         // animation has completed.
                         completed = this._update();
                         
+                        // now that updates are completed, refresh the 
+                        // progress cache. this is a bit wasteful if
+                        // the subclass does not implement progress caching.
+                        this._getProgress(true);
+                        
                         // if we just started the animation, we need
                         // to run started callbacks
                         if (!started) {

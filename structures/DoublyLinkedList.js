@@ -185,7 +185,7 @@ define(
                 }
                 
                 this._count += 1;
-                    
+                
                 node.next = {
                     obj: obj,
                     prev: node,

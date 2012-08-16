@@ -295,10 +295,19 @@ define(
                     
                     // did the animation complete?
                     completed = false;
-                    
                 
-                // do nothing if the animation is currently stopped
+                
+                // do nothing if the animation is stopped?
                 if (this._state.isStopped()) {
+                    
+                    return this;
+                }
+                
+                // if we're paused, apply an update and run the paused update
+                if (this._state.isPaused()) {
+                    
+                    this._applyUpdate.apply(this, arguments);
+                    this._pausedUpdate.apply(this, arguments);
                     
                     return this;
                 }
@@ -326,6 +335,9 @@ define(
                         // progress cache. this is a bit wasteful if
                         // the subclass does not implement progress caching.
                         this._getProgress(true);
+                        
+                        // apply the update
+                        this._applyUpdate.apply(this, arguments);
                         
                         // if we just started the animation, we need
                         // to run started callbacks
@@ -366,6 +378,9 @@ define(
                             
                             // set the state to stopped
                             this._state.stop();
+                            
+                            // run the completed update
+                            this._completedUpdate.apply(this, arguments);
                         }
                         
                     } else {
@@ -478,6 +493,10 @@ define(
             // is being changed that the Animation class' methods should not
             // be called.
             //
+            // the override hooks for updates, i.e. _shouldUpdate(),
+            // _hasStarted(), _startedUpdate(), etc. must be defined by
+            // subclasses and should not call this.inherited(arguments).
+            //
             // the override hooks for progress, i.e. _initializeProgress(),
             // _uninitializeProgress(), _invertProgress() and _getProgress()
             // must be defined by subclasses and should not call
@@ -496,10 +515,12 @@ define(
                 if (progress !== undefined || this._state.isStopped()) {
                     
                     this._initializeProgress(
-                        progress,
                         this._getDelay(),
-                        this._getDuration()
+                        this._getDuration(),
+                        progress
                     );
+                    
+                    this._started = this._hasStarted();
                 
                 } else if (this._state.isReversing()) {
                     
@@ -507,6 +528,8 @@ define(
                         this._getDelay(),
                         this._getDuration()
                     );
+                    
+                    this._started = this._hasStarted();
                 }
             },
             
@@ -535,10 +558,12 @@ define(
                 if (progress !== undefined || this._state.isStopped()) {
                     
                     this._initializeProgress(
-                        progress,
                         this._getDelay(),
-                        this._getDuration()
+                        this._getDuration(),
+                        progress
                     );
+                    
+                    this._started = this._hasStarted();
                 
                 } else if (this._state.isPlaying()) {
                     
@@ -546,6 +571,8 @@ define(
                         this._getDelay(),
                         this._getDuration()
                     );
+                    
+                    this._started = this._hasStarted();
                 }
             },
             
@@ -574,15 +601,17 @@ define(
                 // normalize reverse to a boolean
                 var shouldReverse = reverse || false;
                 
-                // are we pausing from the stopped state?
+                // are we pausing at a specific progress point
+                // or from the stopped state?
                 if (progress !== undefined || this._state.isStopped()) {
                     
                     this._initializeProgress(
-                        progress,
                         this._getDelay(),
-                        this._getDuration()
+                        this._getDuration(),
+                        progress
                     );
-                
+                    
+                    this._started = this._hasStarted();
                 }
                 
                 // did we have a request to set the play / reverse state?
@@ -597,6 +626,8 @@ define(
                         this._getDelay(),
                         this._getDuration()
                     );
+                    
+                    this._started = this._hasStarted();
                 }
             },
             
@@ -682,12 +713,31 @@ define(
                 
             },
             
-            // initialize the animation's progress state with an optional
-            // progress value and the calculated delay and duration values.
+            // called by update() to apply an update to the animation
+            // after _update() has been called and _getProgress() has been
+            // refreshed.
+            _applyUpdate: function() {
+                
+            },
+            
+            // called by update() if the animation is paused after
+            // _applyUpdate() has been called. typically, this should 
+            // be used by subclasses to prevent more updates.
+            _pausedUpdate: function() {
+                
+            },
+            
+            // called by update() after the animation has completed
+            _completedUpdate: function() {
+                
+            },
+            
+            // initialize the animation's progress state with the calculated 
+            // delay and duration values and an optional progress value.
             // if the subclass implements progress caching, this
             // method should refresh the cached value.
             // the semantics of this must be defined by subclasses.
-            _initializeProgress: function(progress, delay, duration) {
+            _initializeProgress: function(delay, duration, progress) {
                 
                 
             },
@@ -739,10 +789,12 @@ define(
             
             // get the parameters that will be passed to the animation's
             // event callback functions. the default implementation returns
-            // an array with this animation and the calculated eased progress.
+            // an array with this animation the calculated progress, and
+            // the calculated eased progress.
             _getCallbackParameters: function() {
                 
-                return [this, this._ease(this._getProgress())];
+                var progress = this._getProgress();
+                return [this, progress, this._ease(progress)];
             },
             
             // ease the given progress value.
@@ -783,13 +835,13 @@ define(
             // get the animation's duration value
             _getDuration: function() {
                 
-                if (lang.isFunction(this.delay)) {
+                if (lang.isFunction(this.duration)) {
                     
-                    return this.delay.apply(null, this._getDurationParameters());
+                    return this.duration.apply(null, this._getDurationParameters());
                     
                 } else {
                     
-                    return this.delay;
+                    return this.duration;
                 }
             },
             

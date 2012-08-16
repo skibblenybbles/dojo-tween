@@ -3,9 +3,10 @@ define(
         "dojo/_base/declare",
         "dojo/_base/lang",
         "./_base",
+        "../SerializedMixin",
         "../../structures/DoublyLinkedList"
     ],
-    function(declare, lang, base, DoublyLinkedList) {
+    function(declare, lang, base, SerializedMixin, DoublyLinkedList) {
         
         
         ///////////////////////////////////////////////////////////////////////
@@ -30,9 +31,6 @@ define(
             window.msRequestAnimationFrame ||
             window.oRequestAnimationFrame ||
             null;
-        
-        // the serial number assigned to each animation
-        var _serial = 1;
         
         
         ///////////////////////////////////////////////////////////////////////
@@ -111,21 +109,21 @@ define(
             // add an animation
             add: function(animation) {
                 
+                var serial;
+                
                 animation = animation || null;
                 
-                if (animation !== null) {
+                if (animation !== null && 
+                    lang.isFunction(animation.isInstanceOf) &&
+                    animation.isInstanceOf(SerializedMixin)
+                ) {
                     
-                    // set the animation's serial number if it's missing one
-                    if (animation.serial === null) {
-                        
-                        animation.serial = _serial;
-                        _serial += 1;
-                    }
+                    serial = animation.getSerial();
                     
                     // update the data structures
-                    if (this._animationsMap[animation.serial] === undefined) {
+                    if (this._animationsMap[serial] === undefined) {
                         
-                        this._animationsMap[animation.serial] = this._animations.insertLast(animation);
+                        this._animationsMap[serial] = this._animations.insertLast(animation);
                     }
                     
                     // make sure the engine has started
@@ -139,16 +137,20 @@ define(
             // remove an animation
             remove: function(animation) {
                 
+                var serial;
+                
                 animation = animation || null;
                 
-                if (animation !== null && 
-                    animation.serial !== null && 
-                    this._animationsMap[animation.serial] !== undefined
-                ) {
+                if (animation !== null) {
                     
-                    // update the data structures
-                    this._animations.remove(this._animationsMap[animation.serial]);
-                    delete this._animationsMap[animation.serial];
+                    serial = animation.getSerial();
+                    
+                    if (this._animationsMap[serial] !== undefined) {
+                        
+                        // update the data structures
+                        this._animations.remove(this._animationsMap[serial]);
+                        delete this._animationsMap[serial];
+                    }
                 }
             },
             
@@ -206,10 +208,10 @@ define(
                 // should we actually update the animations?
                 if (timeDelta >= this.rate) {
                     
-                    // tick the animations forward
+                    // update the animations
                     this._animations.forEach(function(animation) {
                         
-                        animation.tick(timeDelta);
+                        animation.update(timeDelta);
                     });
                     
                     // track the last time we updated

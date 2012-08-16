@@ -80,7 +80,7 @@ define(
             
             reverse: function() {
                 
-                this._state = State.reverse;
+                this._state = State.reversing;
             },
             
             pause: function(reverse) {

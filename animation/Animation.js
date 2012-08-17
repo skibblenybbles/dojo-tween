@@ -308,7 +308,7 @@ define(
                 
                 var
                     // was the animation started before?
-                    started = this.started,
+                    started = this._started,
                     
                     // should we update the animation?
                     shouldUpdate = false,
@@ -352,7 +352,7 @@ define(
                         
                         // run the main update, which returns whether the
                         // animation has completed.
-                        completed = this._update();
+                        completed = this._update.apply(this, arguments);
                         
                         // now that updates are completed, refresh the 
                         // progress cache. this is a bit wasteful if
@@ -584,17 +584,11 @@ define(
             // and duration values.
             _beforeReverse: function(progress) {
                 
-                var delay,
-                    duration;
-                
                 if (progress !== undefined || this._state.isStopped()) {
                     
-                    delay = this._getDelay();
-                    duration = this._getDuration();
-                    
                     this._initializeProgress(
-                        delay,
-                        duration,
+                        this._getDelay(),
+                        this._getDuration(),
                         progress
                     );
                     

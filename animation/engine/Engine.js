@@ -205,23 +205,27 @@ define(
                     // how much time has passed
                     timeDelta = nowTime - this._lastTime;
                 
-                // should we actually update the animations?
-                if (timeDelta >= this.rate) {
-                    
-                    // update the animations
-                    this._animations.forEach(function(animation) {
-                        
-                        animation.update(timeDelta);
-                    });
-                    
-                    // track the last time we updated
-                    this._lastTime = nowTime;
-                }
+                // are we still running?
+                if (this._started) {
                 
-                // have all of our animations been removed?
-                if (this._animations.count() === 0 && this._started) {
+                    // should we actually update the animations?
+                    if (timeDelta >= this.rate) {
+                        
+                        // update the animations
+                        this._animations.forEach(function(animation) {
+                        
+                            animation.update(timeDelta);
+                        });
                     
-                    this._stop();
+                        // track the last time we updated
+                        this._lastTime = nowTime;
+                    }
+                    
+                    // have all of our animations been removed?
+                    if (this._animations.count() === 0 && this._started) {
+                    
+                        this._stop();
+                    }
                 }
             }
             

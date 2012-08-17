@@ -192,7 +192,7 @@ define(
                 // normalize the time delta
                 timeDelta = timeDelta || 0.0;
                 
-                // just reduce the delay's remaining time
+                // reduce the delay's remaining time
                 this._delayRemaining -= timeDelta;
             },
             
@@ -346,7 +346,7 @@ define(
                         }
                     }
                     
-                    // invert the progress for running in reverse?
+                    // invert the progress for reversing?
                     if (this._state.isReversing()) {
                         
                         this._progress = 1.0 - this._progress;

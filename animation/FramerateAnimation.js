@@ -115,24 +115,22 @@ define(
                 
                 this.inherited(arguments);
                 
-                // start updating this animation
-                engine.add(this);
+                // start updating this animation?
+                if (this._state.isRunning()) {
+                    
+                    engine.add(this);
+                }
             },
             
             _afterReverse: function() {
                 
                 this.inherited(arguments);
                 
-                // start updating this animation
-                engine.add(this);
-            },
-            
-            _afterPause: function() {
-                
-                this.inherited(arguments);
-                
-                // start updating this animation
-                engine.add(this);
+                // start updating this animation?
+                if (this._state.isRunning()) {
+                    
+                    engine.add(this);
+                }
             },
             
             _afterStop: function() {
@@ -250,8 +248,8 @@ define(
                 }
                 
                 // set up the remaining values
-                // the frame remaining is always tied to the framerate
-                this._frameRemaining = 1000.0 / this.framerate;
+                // the first frame is instantaneous
+                this._frameRemaining = 0.0;
                 
                 // the delay remaining depends on whether a progress
                 // value was passed
@@ -262,7 +260,7 @@ define(
                     :
                     1000.0 * delay;
                 
-                // the duration remaining also depends on whether a progress
+                // the duration remaining depends on whether a progress
                 // value was passed
                 this._durationRemaining = 
                     progress !== undefined

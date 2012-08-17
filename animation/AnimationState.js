@@ -7,7 +7,7 @@ define(
         
         
         ///////////////////////////////////////////////////////////////////////
-        // The AnimationState class supports methods for playing, reversing, 
+        // The AnimationState class has methods for playing, reversing, 
         // pausing, stopping and querying the current state.
         
         
@@ -53,36 +53,50 @@ define(
             // public api
             ///////////////////////////////////////////////////////////////////
             
+            // n the playing state?
             isPlaying: function() {
                 
                 return (this._state & State.playing) !== 0;
             },
             
+            // in the reversing state?
             isReversing: function() {
                 
                 return (this._state & State.reversing) !== 0;
             },
             
+            // in the paused state?
             isPaused: function() {
                 
                 return (this._state & State.paused) !== 0;
             },
             
+            // in the stopped state?
             isStopped: function() {
                 
                 return (this._state & State.stopped) !== 0;
             },
             
+            // not in the stopped or paused state?
+            isRunning: function() {
+                
+                return (this._state & (State.stopped | State.paused)) === 0;
+            },
+            
+            // set the playing state
             play: function() {
                 
                 this._state = State.playing;
             },
             
+            // set the reversing state
             reverse: function() {
                 
                 this._state = State.reversing;
             },
             
+            // set the paused state, optionally specifying
+            // whether to set the reversing state as well 
             pause: function(reverse) {
                 
                 if (reverse !== undefined) {
@@ -106,6 +120,7 @@ define(
                 }
             },
             
+            // set the stopped state
             stop: function() {
                 
                 this._state = State.stopped;

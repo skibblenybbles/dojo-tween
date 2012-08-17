@@ -168,12 +168,11 @@ define(
             // effect.
             //
             // subclasses should generally not change this method, but rather
-            // should override the _beforePlay(), _play() and _afterPlay()
+            // should override the _beforePlay() and _afterPlay()
             // methods in the internal overrides section below.
             play: function(progress) {
                 
-                var started = this._started;
-                
+                // no effect?
                 if (progress === undefined &&
                     !this._state.isPaused() && 
                     this._state.isPlaying()
@@ -182,24 +181,45 @@ define(
                     return this;
                 }
                 
-                // set up the progress values before the state changes
-                this._beforePlay(progress);
+                // run _beforePlay()?
+                if (this._beforePlay !== null) {
+                    
+                    this._beforePlay(progress);
+                }
                 
-                // change the state
-                this._play();
+                // initialize or invert the progress?
+                if (progress !== undefined || this._state.isStopped()) {
+                    
+                    this._initializeProgress(
+                        this._getDelay(),
+                        this._getDuration(),
+                        progress
+                    );
+                
+                } else if (this._state.isReversing()) {
+                    
+                    this._invertProgress(
+                        this._getDelay(),
+                        this._getDuration()
+                    );
+                }
+                
+                // set the state to playing
+                this._state.play();
                 
                 // refresh the progress cache
                 this._getProgress(true);
                 
-                // run the synchronous play callbacks and perform any required
-                // updates after the state change
-                this._afterPlay();
+                // run synchronous play callbacks
+                this._runCallbacks("play");
                 
-                // do we need to run started callbacks?
-                if (this._started && this._started !== started) {
+                // update the animation
+                this.update();
+                
+                // run _afterPlay()?
+                if (this._afterPlay !== null) {
                     
-                    this._runCallbacks("playStarted");
-                    this._runCallbacks("started");
+                    this._afterPlay(progress);
                 }
                 
                 return this;
@@ -219,12 +239,11 @@ define(
             // effect.
             //
             // subclasses should generally not change this method, but rather
-            // should override the _beforeReverse(), _reverse() and
-            // _afterReverse() methods in the internal overrides section below.
+            // should override the _beforeReverse(), and _afterReverse()
+            // methods in the internal overrides section below.
             reverse: function(progress) {
                 
-                var started = this._started;
-                
+                // no effect?
                 if (progress === undefined &&
                     !this._state.isPaused() &&
                     this._state.isReversing()
@@ -233,24 +252,45 @@ define(
                     return this;
                 }
                 
-                // set up the progress values before the state changes
-                this._beforeReverse(progress);
+                // run _beforeReverse()?
+                if (this._beforeReverse !== null) {
+                    
+                    this._beforeReverse(progress);
+                }
                 
-                // change the state
-                this._reverse();
+                // initialize or invert the progress?
+                if (progress !== undefined || this._state.isStopped()) {
+                    
+                    this._initializeProgress(
+                        this._getDelay(),
+                        this._getDuration(),
+                        progress
+                    );
+                
+                } else if (this._state.isPlaying()) {
+                    
+                    this._invertProgress(
+                        this._getDelay(),
+                        this._getDuration()
+                    );
+                }
+                
+                // set the state to reversing
+                this._state.reverse();
                 
                 // refresh the progress cache
                 this._getProgress(true);
                 
-                // run the synchronous reverse callbacks and perform any
-                // required updates after the state change
-                this._afterReverse();
+                // run synchronous reverse callbacks
+                this._runCallbacks("reverse");
                 
-                // do we need to run started callbacks?
-                if (this._started && this._started !== started) {
+                // update the animation
+                this.update();
+                
+                // run _afterReverse()?
+                if (this._afterReverse !== null) {
                     
-                    this._runCallbacks("reverseStarted");
-                    this._runCallbacks("started");
+                    this._afterReverse(progress);
                 }
                 
                 return this;
@@ -271,21 +311,17 @@ define(
             // the method has no effect.
             // 
             // subclasses should generally not change this method, but rather
-            // should override the _beforePause(), _pause() and _afterPause()
+            // should override the _beforePause() and _afterPause()
             // methods in the internal overrides section below.
             pause: function(progress, reverse) {
                 
-                var started = this._started,
-                    
-                    // normalize reverse to a boolean
-                    shouldReverse = reverse || false;
-                    
+                // no effect?
                 if (progress === undefined &&
                     this._state.isPaused() && (
                         reverse === undefined || (
                             reverse !== undefined && (
-                                (shouldReverse && this._state.isReversing()) ||
-                                (!shouldReverse && this._state.isPlaying())
+                                (reverse && this._state.isReversing()) ||
+                                (!reverse && this._state.isPlaying())
                             )
                         )
                     )
@@ -294,31 +330,54 @@ define(
                     return this;
                 }
                 
-                // set up the progress values before the state changes
-                this._beforePause(progress, reverse);
+                // run _beforePause()?
+                if (this._beforePause !== null) {
+                    
+                    this._beforePause(progress, reverse);
+                }
                 
-                // change the state
-                this._pause(reverse);
+                // initialize the progress?
+                if (progress !== undefined || this._state.isStopped()) {
+                    
+                    this._initializeProgress(
+                        this._getDelay(),
+                        this._getDuration(),
+                        progress
+                    );
+                }
+                
+                // invert the progress?
+                if (
+                    progress === undefined &&
+                    reverse !== undefined && (
+                        (this._state.isPlaying() && reverse) ||
+                        (this._state.isReversing() && !reverse) ||
+                        (this._state.isStopped() && reverse)
+                    )
+                ) {
+                    
+                    this._invertProgress(
+                        this._getDelay(),
+                        this._getDuration()
+                    );
+                }
+                
+                // set the paused state
+                this._state.pause(progress === undefined ? reverse : reverse || false);
                 
                 // refresh the progress cache
                 this._getProgress(true);
                 
-                // run the synchronous pause callbacks and perform any
-                // required updates after the state change
-                this._afterPause();
+                // run synchronous pause callbacks
+                this._runCallbacks("pause");
                 
-                // do we need to run started callbacks?
-                if (this._started && this._started !== started) {
+                // update the animation
+                this.update();
+                
+                // run _afterPause()?
+                if (this._afterPause !== null) {
                     
-                    if (this._state.isPlaying()) {
-                        
-                        this._runCallbacks("playStarted");
-                        
-                    } else if (this._state.isReversing()) {
-                        
-                        this._runCallbacks("reverseStarted");
-                    }
-                    this._runCallbacks("started");
+                    this._afterPause(progress, reverse);
                 }
                 
                 return this;
@@ -326,20 +385,40 @@ define(
             
             // stop the animation
             // updates the animation's state and invokes any stop callbacks.
+            //
+            // if the animation is already stopped, this method has no effect.
             stop: function() {
                 
-                // uninitialize the progress values before the state changes
-                this._beforeStop();
+                // no effect?
+                if (this._state.isStopped()) {
+                    
+                    return this;
+                }
                 
-                // change the state
-                this._stop();
+                // run _beforeStop()?
+                if (this._beforeStop !== null) {
+                    
+                    this._beforeStop();
+                }
+                
+                // uninitialize the animation
+                this._started = false;
+                this._uninitializeProgress();
+                
+                // set the stopped state
+                this._state.stop();
                 
                 // refresh the progress cache
                 this._getProgress(true);
                 
-                // run the synchronous stop callbacks and perform any
-                // required updates after the state change
-                this._afterStop();
+                // run synchronous stop callbacks
+                this._runCallbacks("stop");
+                
+                // run _afterStop()
+                if (this._afterStop !== null) {
+                    
+                    this._afterStop();
+                }
                 
                 return this;
             },
@@ -556,17 +635,17 @@ define(
             // subclasses should override these methods to tailor the
             // animation's functionality.
             //
-            // the override hooks for play(), reverse(), pause() and stop()
-            // i.e. _beforePlay(), _play(), _afterPlay(), etc., should
-            // generally call this.inherited(arguments) to perform the
-            // Animation class' base functionality.
-            // it's only for cases where the overall animation functionality
-            // is being changed that the Animation class' methods should not
-            // be called.
+            // any override hooks for play(), reverse(), pause() and stop()
+            // i.e. _beforePlay(), _afterPlay(), etc., should call
+            // this.inherited(arguments) to perform any inherited
+            // functionality.
             //
             // the override hooks for updates, i.e. _shouldUpdate(),
             // _hasStarted(), _startedUpdate(), etc. must be defined by
             // subclasses and should not call this.inherited(arguments).
+            // each of these hooks will be passed the same parameters
+            // that were passed to update(), but they must set defaults
+            // for the parameters and run correctly with no arguments.            
             //
             // the override hooks for progress, i.e. _initializeProgress(),
             // _uninitializeProgress(), _invertProgress() and _getProgress()
@@ -574,168 +653,45 @@ define(
             // this.inherited(arguments).
             ///////////////////////////////////////////////////////////////////
             
-            // called by play() before the state is changed
-            // if the optional progress value is specified or the animation
-            // is stopped, calls the _initializeProgress() method
-            // with calculated delay and duration values.
-            // otherwise, if the animation was reversing, calls the
-            // _invertProgress() method with the calculated delay
-            // and duration values.
-            _beforePlay: function(progress) {
-                
-                if (progress !== undefined || this._state.isStopped()) {
-                    
-                    this._initializeProgress(
-                        this._getDelay(),
-                        this._getDuration(),
-                        progress
-                    );
-                    
-                    this._started = this._hasStarted();
-                
-                } else if (this._state.isReversing()) {
-                    
-                    this._invertProgress(
-                        this._getDelay(),
-                        this._getDuration()
-                    );
-                    
-                    this._started = this._hasStarted();
-                }
-            },
+            // called by play() with its optional progress value before
+            // any updates to the Animation are made, i.e.
+            // _beforePlay: function(progress) { ... }
+            _beforePlay: null, 
             
-            // called by play() to change the state
-            _play: function() {
-                
-                this._state.play();
-            },
+            // called by play() with its optional progress value after
+            // all updates to the Animation are made, i.e.
+            // _afterPlay: function(progress) { ... }
+            _afterPlay: null,
             
-            // called by play() after the state is changed
-            // runs play callbacks synchronously
-            _afterPlay: function() {
-                
-                this._runCallbacks("play");
-            },
+            // called by reverse() with its optional progress value before
+            // any updates to the Animation are made, i.e.
+            // beforeReverse: function(progress) { ... }
+            _beforeReverse: null,
             
-            // called by reverse() before the state is changed
-            // if the optional progress value is specified or the animation
-            // is stopped, calls the _initializeProgress() method
-            // with calculated delay and duration values.
-            // otherwise, if the animation was playing, calls the
-            // _invertProgress() method with the calculated delay
-            // and duration values.
-            _beforeReverse: function(progress) {
-                
-                if (progress !== undefined || this._state.isStopped()) {
-                    
-                    this._initializeProgress(
-                        this._getDelay(),
-                        this._getDuration(),
-                        progress
-                    );
-                    
-                    this._started = this._hasStarted();
-                
-                } else if (this._state.isPlaying()) {
-                    
-                    this._invertProgress(
-                        this._getDelay(),
-                        this._getDuration()
-                    );
-                    
-                    this._started = this._hasStarted();
-                }
-            },
+            // called by reverse() with its optional progress value after
+            // all updates to the Animation are made, i.e.
+            // _afterReverse: function(progress) { ... }
+            _afterReverse: null, 
             
-            // called by reverse() to change the state
-            _reverse: function() {
-                
-                this._state.reverse();
-            },
+            // called by pause() with its optional progress and reverse
+            // values before any updates to the Animation are made, i.e.
+            // _beforePause: function(progress, reverse) { ... }
+            _beforePause: null,
             
-            // called by reverse() after the state is changed
-            // runs reverse callbacks synchronously
-            _afterReverse: function() {
-                
-                this._runCallbacks("reverse");
-            },
+            // called by pause() with its optional progress and reverse
+            // values after all updates to the Animation are made, i.e.
+            // _afterPause: function(progress, reverse) { ... }
+            _afterPause: null,
             
-            // called by pause() before the state is changed
-            // if the optional progress value is specified or the animation
-            // is stopped, calls the _initializeProgress() method
-            // with calculated delay and duration values.
-            // otherwise, if the animation's playing / reversing state
-            // is changing, calls the _invertProgress() method with the
-            // calculated delay and duration values.
-            _beforePause: function(progress, reverse) {
-                
-                // normalize reverse to a boolean
-                var shouldReverse = reverse || false;
-                
-                // are we pausing at a specific progress point
-                // or from the stopped state?
-                if (progress !== undefined || this._state.isStopped()) {
-                    
-                    this._initializeProgress(
-                        this._getDelay(),
-                        this._getDuration(),
-                        progress
-                    );
-                    
-                    this._started = this._hasStarted();
-                }
-                
-                // did we have a request to set the play / reverse state?
-                if (
-                    reverse !== undefined && (
-                        (this._state.isPlaying() && shouldReverse) ||
-                        (this._state.isReversing() && !shouldReverse) ||
-                        (this._state.isStopped() && shouldReverse)
-                    )
-                ) {
-                    
-                    this._invertProgress(
-                        this._getDelay(),
-                        this._getDuration()
-                    );
-                    
-                    this._started = this._hasStarted();
-                }
-            },
+            // called by stop() before any updates to the Animation are
+            // made, i.e.
+            // _beforeStop: function() { ... }
+            _beforeStop: null,
             
-            // called by pause() to change the state
-            _pause: function(reverse) {
-                
-                this._state.pause(reverse);
-            },
-            
-            // called by pause() after the state is changed
-            // runs pause callbacks synchronously
-            _afterPause: function() {
-                
-                this._runCallbacks("pause");
-            },
-            
-            // called by stop() before the state is changed
-            // calls the _uninitializeProgress() method
-            _beforeStop: function() {
-                
-                this._started = false;
-                this._uninitializeProgress();
-            },
-            
-            // called by stop() to change the state
-            _stop: function() {
-                
-                this._state.stop();
-            },
-            
-            // called by stop() after the state is changed
-            // runs stop callbacks synchronously
-            _afterStop: function() {
-                
-                this._runCallbacks("stop");
-            },
+            // called by stop() after all updates to the Animation are
+            // made, i.e.
+            // _afterStop: function() { ... }
+            _afterStop: null,
             
             // called by update() to determine whether the animation should
             // be updated right now. if it returns true, a call to
@@ -889,7 +845,7 @@ define(
             ///////////////////////////////////////////////////////////////////
             // internal methods
             //
-            // these should generally not be overridden
+            // these should generally not be overridden.
             ///////////////////////////////////////////////////////////////////
             
             // get the animation's delay value

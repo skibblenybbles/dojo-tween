@@ -270,9 +270,6 @@ define(
                     1000.0 * (1.0 - progress) * duration
                     :
                     1000.0 * duration;
-                
-                // refresh the cached progress
-                this._getProgress(true);
             },
             
             _uninitializeProgress: function() {
@@ -280,9 +277,6 @@ define(
                 this._frameRemaining = null;
                 this._delayRemaining = null;
                 this._durationRemaining = null;
-                
-                // refresh the cached progress
-                this._getProgress(true);
             },
             
             _invertProgress: function(delay, duration) {
@@ -307,9 +301,6 @@ define(
                     0
                     :
                     duration * Math.min(1.0, Math.max(0.0, (1.0 - (this._durationRemaining / duration))));
-                
-                // refresh the cached progress
-                this._getProgress(true);
             },
             
             _getProgress: function(refresh) {

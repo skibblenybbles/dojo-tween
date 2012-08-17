@@ -172,6 +172,8 @@ define(
             // methods in the internal overrides section below.
             play: function(progress) {
                 
+                var started = this._started;
+                
                 if (progress === undefined &&
                     !this._state.isPaused() && 
                     this._state.isPlaying()
@@ -186,9 +188,19 @@ define(
                 // change the state
                 this._play();
                 
+                // refresh the progress cache
+                this._getProgress(true);
+                
                 // run the synchronous play callbacks and perform any required
                 // updates after the state change
                 this._afterPlay();
+                
+                // do we need to run started callbacks?
+                if (this._started && this._started !== started) {
+                    
+                    this._runCallbacks("playStarted");
+                    this._runCallbacks("started");
+                }
                 
                 return this;
             },
@@ -211,6 +223,8 @@ define(
             // _afterReverse() methods in the internal overrides section below.
             reverse: function(progress) {
                 
+                var started = this._started;
+                
                 if (progress === undefined &&
                     !this._state.isPaused() &&
                     this._state.isReversing()
@@ -225,9 +239,19 @@ define(
                 // change the state
                 this._reverse();
                 
+                // refresh the progress cache
+                this._getProgress(true);
+                
                 // run the synchronous reverse callbacks and perform any
                 // required updates after the state change
                 this._afterReverse();
+                
+                // do we need to run started callbacks?
+                if (this._started && this._started !== started) {
+                    
+                    this._runCallbacks("reverseStarted");
+                    this._runCallbacks("started");
+                }
                 
                 return this;
             },
@@ -240,20 +264,22 @@ define(
             // the reverse parameter is set. if reverse if false or undefined,
             // the same meaning as play() is used. if reverse is true, the
             // same meaning as reverse() is used.
-            //
+            // 
             // the semantics of the progress value are defined by the subclass.
             // if no progress value was specified or the animation was already
             // paused and its playing / reversing state is not being changed,
             // the method has no effect.
-            //
+            // 
             // subclasses should generally not change this method, but rather
             // should override the _beforePause(), _pause() and _afterPause()
             // methods in the internal overrides section below.
             pause: function(progress, reverse) {
                 
-                // normalize reverse to a boolean
-                var shouldReverse = reverse || false;
-                
+                var started = this._started,
+                    
+                    // normalize reverse to a boolean
+                    shouldReverse = reverse || false;
+                    
                 if (progress === undefined &&
                     this._state.isPaused() && (
                         reverse === undefined || (
@@ -274,9 +300,26 @@ define(
                 // change the state
                 this._pause(reverse);
                 
+                // refresh the progress cache
+                this._getProgress(true);
+                
                 // run the synchronous pause callbacks and perform any
                 // required updates after the state change
                 this._afterPause();
+                
+                // do we need to run started callbacks?
+                if (this._started && this._started !== started) {
+                    
+                    if (this._state.isPlaying()) {
+                        
+                        this._runCallbacks("playStarted");
+                        
+                    } else if (this._state.isReversing()) {
+                        
+                        this._runCallbacks("reverseStarted");
+                    }
+                    this._runCallbacks("started");
+                }
                 
                 return this;
             },
@@ -290,6 +333,9 @@ define(
                 
                 // change the state
                 this._stop();
+                
+                // refresh the progress cache
+                this._getProgress(true);
                 
                 // run the synchronous stop callbacks and perform any
                 // required updates after the state change
@@ -315,7 +361,6 @@ define(
                     
                     // did the animation complete?
                     completed = false;
-                
                 
                 // do nothing if the animation is stopped
                 if (this._state.isStopped()) {
@@ -348,6 +393,18 @@ define(
                             
                             // run the started update
                             this._startedUpdate.apply(this, arguments);
+                            
+                            // run the started callbacks
+                            if (this._state.isPlaying()) {
+                                
+                                this._runCallbacks("playStarted");
+
+                            } else if (this._state.isReversing()) {
+                                
+                                this._runCallbacks("reverseStarted");
+                            }
+                            
+                            this._runCallbacks("started");
                         }
                         
                         // run the main update, which returns whether the
@@ -362,23 +419,7 @@ define(
                         // apply the update
                         this._applyUpdate.apply(this, arguments);
                         
-                        // if we just started the animation, we need
-                        // to run started callbacks
-                        if (!started) {
-                            
-                            if (this._state.isPlaying()) {
-                                
-                                this._runCallbacks("playStarted");
-                            
-                            } else if (this._state.isReversing()) {
-                                
-                                this._runCallbacks("reverseStarted");
-                            }
-                            
-                            this._runCallbacks("started");
-                        }
-                        
-                        // always run updated callbacks
+                        // run the updated callbacks
                         this._runCallbacks("updated");
                         
                         // did the animation complete?
@@ -397,6 +438,7 @@ define(
                             this._runCallbacks("completed");
                             
                             // uninitialize the progress
+                            this._started = false;
                             this._uninitializeProgress();
                             
                             // set the state to stopped
@@ -678,6 +720,7 @@ define(
             // calls the _uninitializeProgress() method
             _beforeStop: function() {
                 
+                this._started = false;
                 this._uninitializeProgress();
             },
             
@@ -708,7 +751,9 @@ define(
             // animation has just started, _startedUpdate() will be called
             // and then _update() will be called.
             // if it returns false, _notStartedUpdate() will be called.
-            // the semantics of the arguments must be defined by the subclass.
+            // the semantics of the arguments must be defined by the subclass,
+            // but this method is special in that it needs to function
+            // correctly when no arguments are passed.
             _hasStarted: function() {
                 
             },
@@ -764,8 +809,6 @@ define(
             
             // initialize the animation's progress state with the calculated 
             // delay and duration values and an optional progress value.
-            // if the subclass implements progress caching, this
-            // method should refresh the cached value.
             // the semantics of this must be defined by subclasses.
             _initializeProgress: function(delay, duration, progress) {
                 
@@ -773,8 +816,6 @@ define(
             },
             
             // uninitialize the animation's progress state.
-            // if the subclass implements progress caching, this
-            // method should refresh the cached value.
             // the semantics of this must be defined by subclasses.
             _uninitializeProgress: function() {
                 
@@ -785,8 +826,6 @@ define(
             // delay and duration values.
             // this happens when an animation that was playing is
             // reversed or vice-versa.
-            // if the subclass implements progress caching, this
-            // method should refresh the cached value.
             // the semantics of this must be defined by subclasses.
             _invertProgress: function(delay, duration) {
                 
@@ -830,15 +869,19 @@ define(
             // ease the given progress value.
             // this should only be overridden if the subclass is using
             // non-numerical values for progress or the progress
-            // range is outside of [0.0, 1.0].
+            // range is not [0.0, 1.0].
             _ease: function(progress) {
                 
                 return (
-                    this.easing === null
+                    typeof progress === "number"
                     ?
-                    progress
+                        this.easing === null
+                        ?
+                        progress
+                        :
+                        this.easing(progress, 0.0, 1.0, 1.0)
                     :
-                    this.easing(progress, 0.0, 1.0, 1.0)
+                    null
                 );
             },
             

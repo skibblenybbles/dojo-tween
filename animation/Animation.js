@@ -12,8 +12,8 @@ define(
         ///////////////////////////////////////////////////////////////////////
         // The Animation class defines an animation abstractly as a delay,
         // a duration and an easing function coupled with methods for playing,
-        // reversing, stopping, pausing and updating. It also supports
-        // callbacks for events that occur during the animation.
+        // reversing, stopping, pausing and updating. It supports callbacks
+        // for events that occur during the animation.
         //
         // Subclasses are responsible for fleshing out an animation's
         // functionality by overriding the methods detailed below.
@@ -85,14 +85,14 @@ define(
             // to be flexible, the type of this value is unrestricted by
             // the Animation class, but subclasses should perform sanity
             // checks to ensure that the duration's value is legitimate.
-            // the Animation class directly supports using callback functions
-            // for the delay's value, as outlined below.
+            // the Animation class allows the use of callback functions
+            // for dynamically calculating the delay's value, as outlined
+            // below.
             delay: null,
             
             // the animation's duration that it plays or reverses after the
             // delay has passed. the type of this value is also unrestricted,
-            // and the Animation class provides support for callback functions
-            // as well.
+            // and can also be defined as a callback function.
             duration: null,
             
             // the animation's easing function
@@ -107,7 +107,10 @@ define(
             ///////////////////////////////////////////////////////////////////
             
             // an instance of AnimationState, describing this animation's
-            // current state (playing | reversing, stopped | paused)
+            // current state (playing | reversing, stopped | paused).
+            // pausing is more complex, because it must also "remember"
+            // if the animation was previously playing or reversing so
+            // that resuming the animation works correctly.
             _state: null,
             
             // has the animation passed its delay and started playing
@@ -115,8 +118,8 @@ define(
             _started: false,
             
             // callbacks
-            // an object mapping callback events to an array of functions
-            // that will be run when the events occur
+            // an object mapping callback event names to an array of functions
+            // that will run when each event occurs.
             _callbacks: null,
             
             
@@ -154,6 +157,11 @@ define(
             // play the animation starting at an optional progress value.
             // updates the animation's state and invokes any play callbacks.
             //
+            // the progress value should be conceptualized as a measure from
+            // the beginning of the animation toward its end, e.g. on a scale
+            // from 0.0 to 1.0, a progress value of 0.8 means that the
+            // animation should play from 0.8 to 1.0.
+            //
             // the semantics of the progress value are defined by the subclass.
             // if no progress value was specified, the animation was not paused
             // and the animation was already playing, this method has no
@@ -187,6 +195,11 @@ define(
             
             // reverse the animation starting at an optional progress value.
             // updates the animation's state and invokes any reverse callbacks.
+            //
+            // the progress value should be conceptualized as a measure from
+            // the end of the animation toward its beginning, e.g. on a scale
+            // from 0.0 to 1.0, a progress value of 0.8 means that the
+            // animation should reverse from 0.2 to 0.0.
             //
             // the semantics of the progress value are defined by the subclass.
             // if no progress value was specified, the animation was not paused
@@ -223,6 +236,11 @@ define(
             // optionally set the animation in a reversing state.
             // updates the animation's state and invokes any reverse callbacks.
             // 
+            // the progress value should be conceptualized according to how
+            // the reverse parameter is set. if reverse if false or undefined,
+            // the same meaning as play() is used. if reverse is true, the
+            // same meaning as reverse() is used.
+            //
             // the semantics of the progress value are defined by the subclass.
             // if no progress value was specified or the animation was already
             // paused and its playing / reversing state is not being changed,
@@ -284,6 +302,8 @@ define(
             // subclasses must define the semantics of the arguments
             // to this function and override the hooks called by update()
             // to define the functionality of the animation.
+            // all arguments passed to update() are passed along to
+            // each of its hooks.
             update: function() {
                 
                 var
@@ -297,13 +317,16 @@ define(
                     completed = false;
                 
                 
-                // do nothing if the animation is stopped?
+                // do nothing if the animation is stopped
                 if (this._state.isStopped()) {
                     
                     return this;
                 }
                 
-                // if we're paused, apply an update and run the paused update
+                // if the animation is paused, apply an update so that the
+                // initialized progress values update the animation and 
+                // run the paused update so the animation has a chance
+                // to stop running more updates.
                 if (this._state.isPaused()) {
                     
                     this._applyUpdate.apply(this, arguments);
@@ -391,7 +414,7 @@ define(
                     
                 } else {
                     
-                    // run the no update hook
+                    // run the no update
                     this._noUpdate.apply(this, arguments);
                 }
                 
@@ -426,7 +449,7 @@ define(
                 return this._state.isStopped();
             },
             
-            // add several callbacks at once by name - options are:
+            // add one or several callbacks at once by name - options are:
             // play, reverse, pause, stop, playStarted, reverseStarted,
             // started, playCompleted, reverseCompleted, completed, updated
             on: function(nameOrCallbacks, callback) {
@@ -451,7 +474,7 @@ define(
                     }
                     this._callbacks[name].push(callback);
                     
-                } else if (callbacks !== null) {
+                } else if (callbacks !== null && callback === undefined) {
                     
                     for (name in callbacks) {
                         
@@ -473,6 +496,12 @@ define(
                             this._callbacks[name].push(callback);
                         }
                     }
+                
+                } else {
+                    
+                    throw new Error(
+                        "Invalid parameters passed to on()."
+                    );
                 }
                 
                 return this;
@@ -487,8 +516,8 @@ define(
             //
             // the override hooks for play(), reverse(), pause() and stop()
             // i.e. _beforePlay(), _play(), _afterPlay(), etc., should
-            // generally be called by subclasses overriding these methods
-            // by calling this.inherited(arguments).
+            // generally call this.inherited(arguments) to perform the
+            // Animation class' base functionality.
             // it's only for cases where the overall animation functionality
             // is being changed that the Animation class' methods should not
             // be called.
@@ -555,11 +584,17 @@ define(
             // and duration values.
             _beforeReverse: function(progress) {
                 
+                var delay,
+                    duration;
+                
                 if (progress !== undefined || this._state.isStopped()) {
                     
+                    delay = this._getDelay();
+                    duration = this._getDuration();
+                    
                     this._initializeProgress(
-                        this._getDelay(),
-                        this._getDuration(),
+                        delay,
+                        duration,
                         progress
                     );
                     
@@ -618,7 +653,8 @@ define(
                 if (
                     reverse !== undefined && (
                         (this._state.isPlaying() && shouldReverse) ||
-                        (this._state.isReversing() && !shouldReverse)
+                        (this._state.isReversing() && !shouldReverse) ||
+                        (this._state.isStopped() && shouldReverse)
                     )
                 ) {
                     

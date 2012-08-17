@@ -435,9 +435,6 @@ define(
                     // was the animation started before?
                     started = this._started,
                     
-                    // should we update the animation?
-                    shouldUpdate = false,
-                    
                     // did the animation complete?
                     completed = false;
                 
@@ -447,31 +444,28 @@ define(
                     return this;
                 }
                 
-                // if the animation is paused, apply an update so that the
-                // initialized progress values update the animation and 
-                // run the paused update so the animation has a chance
-                // to stop running more updates.
+                // apply an update if the animation is paused
                 if (this._state.isPaused()) {
                     
-                    this._applyUpdate.apply(this, arguments);
-                    this._pausedUpdate.apply(this, arguments);
-                    
+                    this._applyUpdate !== null && this._applyUpdate.apply(this, arguments);
                     return this;
                 }
                 
                 // should we update the animation?
-                shouldUpdate = this._shouldUpdate.apply(this, arguments);
-                if (shouldUpdate) {
+                if (this._shouldUpdate.apply(this, arguments)) {
                     
                     // has the animation started?
-                    this._started = started || (this._hasStarted.apply(this, arguments));
+                    this._started = 
+                        started ||
+                        this._hasStarted !== null && this._hasStarted.apply(this, arguments) || false;
+                        
                     if (this._started) {
                         
                         // did we just start the animation?
                         if (!started) {
                             
                             // run the started update
-                            this._startedUpdate.apply(this, arguments);
+                            this._startedUpdate !== null && this._startedUpdate.apply(this, arguments);
                             
                             // run the started callbacks
                             if (this._state.isPlaying()) {
@@ -488,7 +482,7 @@ define(
                         
                         // run the main update, which returns whether the
                         // animation has completed.
-                        completed = this._update.apply(this, arguments);
+                        completed = this._update !== null && this._update.apply(this, arguments) || false;
                         
                         // now that updates are completed, refresh the 
                         // progress cache. this is a bit wasteful if
@@ -496,7 +490,7 @@ define(
                         this._getProgress(true);
                         
                         // apply the update
-                        this._applyUpdate.apply(this, arguments);
+                        this._applyUpdate !== null && this._applyUpdate.apply(this, arguments);
                         
                         // run the updated callbacks
                         this._runCallbacks("updated");
@@ -524,19 +518,19 @@ define(
                             this._state.stop();
                             
                             // run the completed update
-                            this._completedUpdate.apply(this, arguments);
+                            this._completedUpdate !== null && this._completedUpdate.apply(this, arguments);
                         }
                         
                     } else {
                         
                         // run the not started updates
-                        this._notStartedUpdate.apply(this, arguments);
+                        this._notStartedUpdate !== null && this._notStartedUpdate.apply(this, arguments);
                     }
                     
                 } else {
                     
                     // run the no update
-                    this._noUpdate.apply(this, arguments);
+                    this._noUpdate !== null && this._noUpdate.apply(this, arguments);
                 }
                 
                 return this;
@@ -694,88 +688,69 @@ define(
             _afterStop: null,
             
             // called by update() to determine whether the animation should
-            // be updated right now. if it returns true, a call to
-            // _hasStarted() will be made to decide what to do next.
+            // be updated right now. if it returns true, a decision
+            // will be made to call _update() and related methods.
             // if it returns false, _noUpdate() will be called.
             // the semantics of the arguments must be defined by the subclass.
-            _shouldUpdate: function() {
-                
-            },
+            _shouldUpdate: null,
             
             // called by update() to determine whether the animation has
             // started (passed its delay). if it returns true and the
-            // animation has just started, _startedUpdate() will be called
-            // and then _update() will be called.
+            // animation has just started, _startedUpdate() will be called.
+            // Then, _update() will be called.
             // if it returns false, _notStartedUpdate() will be called.
-            // the semantics of the arguments must be defined by the subclass,
-            // but this method is special in that it needs to function
-            // correctly when no arguments are passed.
-            _hasStarted: function() {
-                
-            },
+            // the semantics of the arguments must be defined by the subclass.
+            _hasStarted: null,
             
             // called by update() when it determines that the animation should
             // be updated and has just started (passed its delay).
             // the semantics of the arguments must be defined by the subclass.
-            _startedUpdate: function() {
-                
-            },
+            _startedUpdate: null,
             
             // called by update() when it determines that the animation
             // should be updated but has not yet started (passed its delay).
             // the semantics of the arguments must be defined by the subclass.
-            _notStartedUpdate: function() {
-                
-            },
+            _notStartedUpdate: null,
             
             // called by update() when it determines that the animation should
             // be updated and has already started.
             // it must return a boolean indicating whether the animation has
             // completed.
             // the semantics of the arguments must be defined by the subclass.
-            _update: function() {
-                
-            },
+            _update: null,
             
             // called by update() when it determines that the animation should
             // not be updated.
             // the semantics of the arguments must be defined by the subclass.
-            _noUpdate: function() {
-                
-            },
+            _noUpdate: null,
             
             // called by update() to apply an update to the animation
             // after _update() has been called and _getProgress() has been
             // refreshed.
-            _applyUpdate: function() {
-                
-            },
-            
-            // called by update() if the animation is paused after
-            // _applyUpdate() has been called. typically, this should 
-            // be used by subclasses to prevent more updates.
-            _pausedUpdate: function() {
-                
-            },
+            _applyUpdate: null,
             
             // called by update() after the animation has completed
-            _completedUpdate: function() {
-                
-            },
+            _completedUpdate: null,
             
             // initialize the animation's progress state with the calculated 
             // delay and duration values and an optional progress value.
             // the semantics of this must be defined by subclasses.
             _initializeProgress: function(delay, duration, progress) {
                 
-                
+                throw new Error(
+                    "_initializeProgress() was not implemented by the " +
+                    "subclass."
+                );
             },
             
             // uninitialize the animation's progress state.
             // the semantics of this must be defined by subclasses.
             _uninitializeProgress: function() {
                 
-                
+                throw new Error(
+                    "_uninitializeProgress() was not implemented by the " +
+                    "subclass."
+                );
             },
             
             // invert the animation's progress state with the calculated
@@ -785,7 +760,10 @@ define(
             // the semantics of this must be defined by subclasses.
             _invertProgress: function(delay, duration) {
                 
-                
+                throw new Error(
+                    "_invertProgress() was not implemented by the " +
+                    "subclass."
+                );
             },
             
             // get the animation's progress.
@@ -795,7 +773,10 @@ define(
             // the semantics of this must be defined by subclasses.
             _getProgress: function(refresh) {
                 
-                
+                throw new Error(
+                    "_getProgress() was not implemented by the " +
+                    "subclass."
+                );
             },
             
             // get the parameters that will be passed to the animation's

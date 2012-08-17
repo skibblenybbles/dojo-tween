@@ -227,12 +227,6 @@ define(
                 console.log(this._ease(this._getProgress()));
             },
             
-            _pausedUpdate: function() {
-                
-                // stop updating this animation
-                engine.remove(this);
-            },
-            
             _completedUpdate: function() {
                 
                 // stop updating this animation

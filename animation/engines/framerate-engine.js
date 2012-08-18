@@ -2,15 +2,14 @@ define(
     [
         "dojo/_base/declare",
         "dojo/_base/lang",
-        "./_base",
         "../SerializedMixin",
         "../../structures/DoublyLinkedList"
     ],
-    function(declare, lang, base, SerializedMixin, DoublyLinkedList) {
+    function(declare, lang, SerializedMixin, DoublyLinkedList) {
         
         
         ///////////////////////////////////////////////////////////////////////
-        // The Engine class, the core engine used by FramerateAnimation
+        // The FrameEngine class, the core engine used by FramerateAnimation
         // instances.
         //
         // uses window.requestAnimationFrame() to synchronize animation
@@ -34,10 +33,10 @@ define(
         
         
         ///////////////////////////////////////////////////////////////////////
-        // Engine class
+        // FramerateEngine class
         ///////////////////////////////////////////////////////////////////////
         
-        var Engine = declare(null, {
+        var FramerateEngine = declare(null, {
             
             
             ///////////////////////////////////////////////////////////////////
@@ -232,8 +231,10 @@ define(
         });
         
         
-        // define the package structure
-        base.Engine = Engine;
-        return base.Engine;
+        // create the FramerateEngine singleton,
+        // set to request update frames every 4 milliseconds
+        return new FramerateEngine({
+            rate: 4
+        });
     }
 );

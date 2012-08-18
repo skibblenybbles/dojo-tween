@@ -5,7 +5,7 @@ define(
         "./_base",
         "./Animation",
         "./SerializedMixin",
-        "./engine"
+        "./engines/framerate-engine"
     ],
     function(declare, lang, base, Animation, SerializedMixin, engine) {
         
@@ -131,6 +131,14 @@ define(
                     
                     engine.add(this);
                 }
+            },
+            
+            _afterPause: function() {
+                
+                this.inherited(arguments);
+                
+                // stop updating this animation
+                engine.remove(this);
             },
             
             _afterStop: function() {

@@ -739,7 +739,7 @@ define(
                 
                 throw new Error(
                     "_initializeProgress() was not implemented by the " +
-                    "subclass."
+                    "Animation subclass."
                 );
             },
             
@@ -749,7 +749,7 @@ define(
                 
                 throw new Error(
                     "_uninitializeProgress() was not implemented by the " +
-                    "subclass."
+                    "Animation subclass."
                 );
             },
             
@@ -762,7 +762,7 @@ define(
                 
                 throw new Error(
                     "_invertProgress() was not implemented by the " +
-                    "subclass."
+                    "Animation subclass."
                 );
             },
             
@@ -775,7 +775,7 @@ define(
                 
                 throw new Error(
                     "_getProgress() was not implemented by the " +
-                    "subclass."
+                    "Animation subclass."
                 );
             },
             

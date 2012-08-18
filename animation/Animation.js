@@ -86,8 +86,8 @@ define(
             // the Animation class, but subclasses should perform sanity
             // checks to ensure that the duration's value is legitimate.
             // the Animation class allows the use of callback functions
-            // for dynamically calculating the delay's value, as outlined
-            // below.
+            // for dynamically calculating the delay's value, but the delay
+            // value it returns should be a constant, or results are undefined.
             delay: null,
             
             // the animation's duration that it plays or reverses after the
@@ -154,13 +154,17 @@ define(
             // public api
             ///////////////////////////////////////////////////////////////////
             
-            // play the animation starting at an optional progress value.
+            // play the animation starting at an optional progress value
+            // and optionally skip the delay.
+            //
             // updates the animation's state and invokes any play callbacks.
             //
             // the progress value should be conceptualized as a measure from
             // the beginning of the animation toward its end, e.g. on a scale
             // from 0.0 to 1.0, a progress value of 0.8 means that the
-            // animation should play from 0.8 to 1.0.
+            // animation should play from 80% to 100% of its delay plus
+            // duration. if skipDelay is true, it should play skip over the
+            // delay and play from 80% to 100% of just its duration.
             //
             // the semantics of the progress value are defined by the subclass.
             // if no progress value was specified, the animation was not paused
@@ -170,7 +174,7 @@ define(
             // subclasses should generally not change this method, but rather
             // should override the _beforePlay() and _afterPlay()
             // methods in the internal overrides section below.
-            play: function(progress) {
+            play: function(progress, skipDelay) {
                 
                 // no effect?
                 if (progress === undefined &&
@@ -193,14 +197,16 @@ define(
                     this._initializeProgress(
                         this._getDelay(),
                         this._getDuration(),
-                        progress
+                        progress,
+                        skipDelay
                     );
                 
                 } else if (this._state.isReversing()) {
                     
                     this._invertProgress(
                         this._getDelay(),
-                        this._getDuration()
+                        this._getDuration(),
+                        skipDelay
                     );
                 }
                 
@@ -225,13 +231,14 @@ define(
                 return this;
             },
             
-            // reverse the animation starting at an optional progress value.
+            // reverse the animation starting at an optional progress value
+            // and optionally skip the delay.
+            //
             // updates the animation's state and invokes any reverse callbacks.
             //
-            // the progress value should be conceptualized as a measure from
-            // the end of the animation toward its beginning, e.g. on a scale
-            // from 0.0 to 1.0, a progress value of 0.8 means that the
-            // animation should reverse from 0.2 to 0.0.
+            // the progress value should be conceptualized similarly to play(),
+            // except that it is measured from the end of the animation towards
+            // the beginning of the animation.
             //
             // the semantics of the progress value are defined by the subclass.
             // if no progress value was specified, the animation was not paused
@@ -241,7 +248,7 @@ define(
             // subclasses should generally not change this method, but rather
             // should override the _beforeReverse(), and _afterReverse()
             // methods in the internal overrides section below.
-            reverse: function(progress) {
+            reverse: function(progress, skipDelay) {
                 
                 // no effect?
                 if (progress === undefined &&
@@ -264,14 +271,16 @@ define(
                     this._initializeProgress(
                         this._getDelay(),
                         this._getDuration(),
-                        progress
+                        progress,
+                        skipDelay
                     );
                 
                 } else if (this._state.isPlaying()) {
                     
                     this._invertProgress(
                         this._getDelay(),
-                        this._getDuration()
+                        this._getDuration(),
+                        skipDelay
                     );
                 }
                 
@@ -296,8 +305,10 @@ define(
                 return this;
             },
             
-            // pause the animation at an optional progress value, and also
-            // optionally set the animation in a reversing state.
+            // pause the animation at an optional progress value, optionally
+            // skip the delay and optionally set the animation in a reversing
+            // state.
+            //
             // updates the animation's state and invokes any reverse callbacks.
             // 
             // the progress value should be conceptualized according to how
@@ -313,7 +324,7 @@ define(
             // subclasses should generally not change this method, but rather
             // should override the _beforePause() and _afterPause()
             // methods in the internal overrides section below.
-            pause: function(progress, reverse) {
+            pause: function(progress, skipDelay, reverse) {
                 
                 // no effect?
                 if (progress === undefined &&
@@ -342,7 +353,8 @@ define(
                     this._initializeProgress(
                         this._getDelay(),
                         this._getDuration(),
-                        progress
+                        progress,
+                        skipDelay
                     );
                 }
                 
@@ -358,7 +370,8 @@ define(
                     
                     this._invertProgress(
                         this._getDelay(),
-                        this._getDuration()
+                        this._getDuration(),
+                        skipDelay
                     );
                 }
                 
@@ -733,9 +746,10 @@ define(
             _completedUpdate: null,
             
             // initialize the animation's progress state with the calculated 
-            // delay and duration values and an optional progress value.
+            // delay and duration values, an optional progress value and 
+            // an option to skip the delay.
             // the semantics of this must be defined by subclasses.
-            _initializeProgress: function(delay, duration, progress) {
+            _initializeProgress: function(delay, duration, progress, skipDelay) {
                 
                 throw new Error(
                     "_initializeProgress() was not implemented by the " +
@@ -754,11 +768,11 @@ define(
             },
             
             // invert the animation's progress state with the calculated
-            // delay and duration values.
+            // delay and duration values and an option to skip the delay.
             // this happens when an animation that was playing is
             // reversed or vice-versa.
             // the semantics of this must be defined by subclasses.
-            _invertProgress: function(delay, duration) {
+            _invertProgress: function(delay, duration, skipDelay) {
                 
                 throw new Error(
                     "_invertProgress() was not implemented by the " +

@@ -241,35 +241,84 @@ define(
                 engine.remove(this);
             },
             
-            _initializeProgress: function(delay, duration, progress) {
+            _initializeProgress: function(delay, duration, progress, skipDelay) {
                 
-                // cap progress?
-                if (progress !== undefined) {
+                var 
+                    // the total delay and duration
+                    total,
+                    
+                    // the percentage of the total that delay and duration
+                    // each comprise
+                    delayPercent,
+                    durationPercent;
+                
+                
+                // normalize the progress value
+                if (progress === undefined) {
+                    
+                    progress = 0.0;
+                
+                } else {
                     
                     progress = Math.min(1.0, Math.max(0.0, progress));
                 }
                 
-                // set up the remaining values
-                // the first frame is instantaneous
-                this._frameRemaining = 0.0;
+                // _progress is calculated internally by _frameRemaining,
+                // _delayRemaining and _durationRemaining, so initialize
+                // these values.
                 
-                // the delay remaining depends on whether a progress
-                // value was passed
-                this._delayRemaining = 
-                    progress !== undefined
-                    ?
-                    0.0
-                    :
-                    1000.0 * delay;
+                // the first frame update is instantaneous.
+                // it will be set to an appropriate value for the
+                // framerate by _shouldUpdate().
+                this._frameRemaining = 0;
                 
-                // the duration remaining depends on whether a progress
-                // value was passed
-                this._durationRemaining = 
-                    progress !== undefined
-                    ?
-                    1000.0 * (1.0 - progress) * duration
-                    :
-                    1000.0 * duration;
+                // the other values depend on whether skipDelay is set
+                if (skipDelay === true) {
+                    
+                    // we're skipping the delay
+                    this._delayRemaining = 0;
+                    
+                    // set the duration according to progress
+                    this._durationRemaining = 1000.0 * (1.0 - progress) * duration;
+                    
+                } else {
+                    
+                    // we'll need the total length of the animation
+                    total = delay + duration;
+                    
+                    // set the delay and duration based on progress
+                    // and their percentages of the total length
+                    if (total === 0.0) {
+                        
+                        // simple case
+                        this._delayRemaining = 0.0;
+                        this._durationRemaining = 0.0;
+                        
+                    } else {
+                        
+                        // complex case
+                        delayPercent = delay / total;
+                        durationPercent = duration / total;
+                        
+                        // set the delay based on whether the progress has
+                        // passed it
+                        this._delayRemaining = 
+                            progress < delayPercent
+                            ?
+                            1000.0 * (delayPercent - progress) * total
+                            :
+                            0.0;
+                            
+                        // set the duration based on whether the progress
+                        // has passed the delay
+                        this._durationRemaining = 
+                            progress < delayPercent
+                            ?
+                            1000.0 * duration
+                            :
+                            1000.0 * (1.0 - progress) * total;
+                    }
+                }
             },
             
             _uninitializeProgress: function() {
@@ -279,7 +328,7 @@ define(
                 this._durationRemaining = null;
             },
             
-            _invertProgress: function(delay, duration) {
+            _invertProgress: function(delay, duration, skipDelay) {
                 
                 delay = 1000.0 * delay;
                 duration = 1000.0 * duration;
@@ -288,11 +337,15 @@ define(
                 if (this._delayRemaining > 0) {
                     
                     this._delayRemaining =
-                        delay === 0
+                        skipDelay === true
                         ?
                         0
                         :
-                        delay * Math.min(1.0, Math.max(0.0, (1.0 - (this._delayRemaining / delay))));
+                            delay === 0
+                            ?
+                            0
+                            :
+                            delay * Math.min(1.0, Math.max(0.0, (1.0 - (this._delayRemaining / delay))));
                 }
                 
                 this._durationRemaining =
@@ -324,6 +377,7 @@ define(
                         if (this._delayRemaining <= 0.0) {
                             
                             duration = 1000.0 * this._getDuration();
+                            
                             this._progress = duration > 0.0
                                 ?
                                 Math.min(1.0, Math.max(0.0, (duration - this._durationRemaining) / duration))
